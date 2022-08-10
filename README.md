@@ -18,6 +18,6 @@ You will need to update the file directory names at the end of the python file t
 storm_select() function definintion to control how you want to filter out storms. Variables a, b, c, d, e, f, g, p, and q in lines 71-79 can be set to 0 or 1 to turn the 
 filter on or off, respectively. The variables highest, excess, metric, small, med, large, temp_thresh, and perc_thresh can also be edited to change the limits of 
 their associated filtering functions. For example, temp_thresh could be changed from 0.0 to 2.0 to change the limiting temperature (degrees Celcius) for 
-storms to removed for assumed snowfall. 
+storms to be removed for assumed snowfall. 
 
 Future python files will be added to run regression and plotting functions on the selected storm files. 
