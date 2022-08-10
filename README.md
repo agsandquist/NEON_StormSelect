@@ -1,5 +1,5 @@
 # NEON_StormSelect
-This repository includes functions that define and filter storm events from NEON precipitation and throughfall data, calculate estimated interception loss for each storm. 
+This repository includes functions that define and filter storm events from NEON precipitation and throughfall data, and calculate estimated interception loss for each storm. 
 
 ## get_new_storms.py
 Run the get_new_storms.py file on newly downloaded and unzipped NEON precipitation and throughfall data. Data can be downloaded from here: 
