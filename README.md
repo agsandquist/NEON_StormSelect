@@ -15,9 +15,9 @@ data, downloaded and unzipped. You can download that data here:
 https://data.neonscience.org/data-products/DP1.00002.001
 
 You will need to update the file directory names at the end of the python file to match your file structure. You can also change the parameters near the beginning of the
-storm_select() function definintion to control how you want to filter out storms. Variables a, b, c, d, e, f, g, p, and q in lines 71-79 can be set to 0 or 1 to turn the 
+storm_select() function definintion to control how you want to filter out storms. Variables a, b, c, d, e, f, g, p, and q in lines 113-122 can be set to 1 or 0 to turn the 
 filter on or off, respectively. The variables highest, excess, metric, small, med, large, temp_thresh, and perc_thresh can also be edited to change the limits of 
 their associated filtering functions. For example, temp_thresh could be changed from 0.0 to 2.0 to change the limiting temperature (degrees Celcius) for 
 storms to be removed for assumed snowfall. 
 
-Future python files will be added to run regression and plotting functions on the selected storm files. 
+Future python or R script files will be added to run regression and plotting functions on the selected storm files. 
