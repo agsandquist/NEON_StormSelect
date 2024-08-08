@@ -3,7 +3,7 @@ import numpy as np
 import glob
 import pandas as pd
 import shutil
-
+from pathlib import Path
 ## This program includes functions to take raw downloaded NEON precipitation and
 ## throughfall data and outputs a file with defined storms for each site in a given
 ## list. The functions also calculate duration and interception loss for each storm.
@@ -17,7 +17,9 @@ def flatten(destination):
             first_loop_pass = False
             continue
         for filename in files:
-            all_files.append(os.path.join(root, filename))
+            if not 'readme' in filename and not 'sensor_positions' in filename and not 'variables' in filename:
+                #if not 'sensor_positions' and not 'variables' in filename:
+                all_files.append(os.path.join(root, filename))
     for filename in all_files:
         shutil.move(filename, destination)
     print("Files flattened")
@@ -33,7 +35,7 @@ def filter(source, destination, filter_string):
     print("Files filtered")
 
 # This function concatenates all monthly precip files per site into one file.
-def concatPrecip(Sites, dir, output_folder):
+def concatPrecip(Sites, dir, output_folder,date):
     os.chdir(dir)
     for site in Sites:
         secP = 0
@@ -58,19 +60,19 @@ def concatPrecip(Sites, dir, output_folder):
           # If there are no sec or pri precip data, print a statement indicating no precip data at that site.
         if priP == 0 and secP == 0:
             df_comb = pd.merge(combined_pri, combined_sec, on='startDateTime')
-            df_comb.to_csv(output_folder+'Combined_Allprecip_' + site + '.csv',
+            df_comb.to_csv(output_folder+'Combined_Allprecip_' + site + date+'.csv',
                            index=False,
                            encoding='utf-8-sig')
         elif priP == 0 and secP == 1:
             df_comb = combined_pri
             df_comb['secPrecipBulk'] = 0
-            df_comb.to_csv(output_folder+'Combined_Allprecip_' + site + '.csv',
+            df_comb.to_csv(output_folder+'Combined_Allprecip_' + site + date+'.csv',
                            index=False,
                            encoding='utf-8-sig')
         elif secP == 0 and priP == 1:
             df_comb = combined_sec
             df_comb['priPrecipBulk'] = 0
-            df_comb.to_csv(output_folder+'Combined_Allprecip_' + site + '.csv',
+            df_comb.to_csv(output_folder+'Combined_Allprecip_' + site + date+'.csv',
                            index=False,
                            encoding='utf-8-sig')
         elif priP == 1 and secP == 1:
@@ -94,7 +96,7 @@ def concatTF(Sites, dir, output_folder, TF_sensor):
 # This function combines each of the concatenated TF sensor files into one csv.
     # Inputs: Site = list of sites, dir = directory to concatenated TF files,
     # output_fodler = directory where you want to store output combined csv files
-def combineTF(Sites, dir, output_folder):
+def combineTF(Sites, dir, output_folder,date):
     for site in Sites:
         no1 = 0
         no2 = 0
@@ -194,7 +196,7 @@ def combineTF(Sites, dir, output_folder):
             combinedTF_df['TF5'] = combined_csv_tf5['TFPrecipBulk']
 
         # write dataframe with all concatenated TF sensor data to one csv
-        combinedTF_df.to_csv(output_folder+'Combined_allTF_' + site + '.csv', index=False, encoding='utf-8-sig')
+        combinedTF_df.to_csv(output_folder+'Combined_allTF_' + site + date+'.csv', index=False, encoding='utf-8-sig')
 
 # The below functions will define storm events from the TF and precip data.
     # Inputs: a = the dataframe column that contains the precip data.
@@ -232,7 +234,7 @@ def storm_event(zero_trail, storm_len, storm_gap):
 def agg_prec(df, prec1, prec2, tf1, tf2, tf3, tf4, tf5, medTF, gap):
     df['startDateTime'] = pd.to_datetime(df['startDateTime'])
     if df[prec2].sum() == 0.0:
-        print('secPreip is zero for ', site)
+        print('secPrecip is zero for ', site)
         prep = prec1 #df[prec1].to_numpy() # **defining storms based on PriPrecip measurement only if SecPrecip = 0
     else:
         prep = prec2 #df[prec2].to_numpy()
@@ -439,29 +441,18 @@ def staging(precip_path, thrfall_path, site, output_path):
     interception['Site'] = site
 
     if len(interception) != 0:
-        #interception = pd.merge(interception, site_biomass, on="Site")
-        #interception = pd.merge(interception, site_veg, on="Site")
-
         interception["Date"] = interception["startDateTime"].dt.date
-        # interception["ldiFromDate"] = interception["Date"] - pd.Timedelta("3 day")
-        # interception["ldiToDate"] = interception["Date"] + pd.Timedelta("4 day")
-
-        # # A.Date,A.ldiFromDate,A.ldiToDate,B.Date,
-        # sqlcode = '''
-        #     select B.MCD15A2H_006_Lai_500m
-        #     from interception A
-        #     left outer join site_lai B on A.Site=B.Category
-        #     where A.ldiFromDate <= B.Date and A.ldiToDate >= B.Date
-        #     '''
-        #
-        # Lai_500m = ps.sqldf(sqlcode, locals())
-        # interception["Lai_500m"] = Lai_500m
-
         interception_loss_df = interception[
             ["Date", "startDateTime", "duration", "p1", "p2", 'tf1', "tf2", 'tf3', 'tf4', 'tf5', 'medTF', 'tf1post', 'tf2post', 'tf3post', 'tf4post', 'tf5post', "IL_perc", "IL_mm", "Site"]] #"EF", "GH", "SH", "DF", "MF", "PH", "WW", "Lai_500m", "MCH", "Biomass",
         # Reformat column names to match those used by stormselection.py
         interception_loss_df.rename(columns={'p1': 'PriPrecip', 'p2': 'SecPrecip', 'tf1':'TF1', 'tf2':'TF2', 'tf3':'TF3', 'tf4':'TF4','tf5':'TF5'}, inplace=True)
-        interception_loss_df.to_csv(output_path+'Output_'+site+'.csv', mode='a', header = True, index=False)
+        path_check = Path(output_path+'Output_'+site+'.csv')
+        if path_check.is_file() == True:
+            h = False
+        else:
+            h = True
+
+        interception_loss_df.to_csv(output_path+'Output_'+site+'.csv', mode='a', header = h, index=False)
 
 
 
@@ -469,7 +460,7 @@ if __name__ == "__main__":
     main_dir = 'C:/Users/Abigail Sandquist/Box/IL/IL_Project/'
 
     # Define the path to newly downloaded and unzipped NEON data
-    folder_flatten = main_dir+'NEON_Downloads/NEON_precip/NEON_precipitation/'
+    folder_flatten = main_dir+'NEON_Downloads/NEON_precipitation_Jan2023/NEON_precipitation/'
 
     # Flatten nested files in destination_flatten folder
     flattened = flatten(folder_flatten)
@@ -481,17 +472,18 @@ if __name__ == "__main__":
     sort = filter(source_filter, destination_filter, filter_string)
 
     # Define Sites on which to combine files and define storms
-    Sites = ['DSNY']
+    Sites = ['BART']
 
-        # ['BLAN', 'SCBI', 'SERC', 'DSNY', 'JERC', 'OSBS', 'GUAN', 'STEI', 'TREE', 'UNDE', 'KONZ',
-        #      'UKFS', 'GRSM', 'MLBS', 'ORNL', 'DELA', 'LENO', 'TALL', 'RMNP', 'CLBJ', 'YELL', 'SRER', 'ABBY',
-        #      'WREF', 'SJER', 'SOAP', 'TEAK', 'BONA', 'JORN', 'DEJU']
+    Sites2 = ['BLAN', 'SCBI', 'SERC', 'DSNY', 'JERC', 'OSBS', 'STEI', 'TREE', 'UNDE', 'KONZ']#,
+    Sites3 = ['UKFS', 'GRSM', 'MLBS', 'ORNL', 'DELA', 'LENO', 'TALL', 'RMNP', 'CLBJ', 'YELL', 'SRER', 'ABBY']#,
+    Sites4 = ['WREF', 'SJER', 'SOAP', 'TEAK', 'BONA', 'JORN', 'DEJU']
 
     # Combine monthly precip files into one file per site
     dir_precip = destination_filter
     output_folder_precip = main_dir+'Combined/Precip/'
-    concatP = concatPrecip(Sites, dir_precip, output_folder_precip)
-    print('All precip data combined')
+    date = 'aug22-jan23'
+    concatP = concatPrecip(Sites, dir_precip, output_folder_precip,date)
+    print('All precip data combined')#selec_
 
     # Combine monthly throughfall files into one file per site
     dir_TF = destination_filter
@@ -502,14 +494,16 @@ if __name__ == "__main__":
     print('All TF sensors concatenated.')
     dir_TFcombine = output_folder_TFconcat
     output_folder_TFcombine = main_dir+'Combined/TF/'
-    combTF = combineTF(Sites, dir_TFcombine, output_folder_TFcombine)
+    #date='aug22-jan23'
+    combTF = combineTF(Sites, dir_TFcombine, output_folder_TFcombine, date)
     print('All TF data combined')
+
 
     # Define storms from combined data files
     for site in Sites:
         # Read in combined TF and precip files
-        precip_path = glob.glob(output_folder_precip + 'Combined_Allprecip_' + site + '.csv')
-        thrfall_path = glob.glob(output_folder_TFcombine+'Combined_allTF_' + site + '.csv')
+        precip_path = glob.glob(output_folder_precip + 'Combined_Allprecip_' + site + date+'.csv')
+        thrfall_path = glob.glob(output_folder_TFcombine+'Combined_allTF_' + site + date+'.csv')
         output_path_staging = main_dir+'Staging/'
 
         if len(precip_path) == 0 or len(thrfall_path) == 0:
@@ -518,4 +512,5 @@ if __name__ == "__main__":
             if len(thrfall_path) == 0:
                 print("Combined TF file does not exist for", site)
         else:
-            staging(precip_path[0], thrfall_path[0], site, output_path_staging) #ouput csv with new storms
+            staging(precip_path[0], thrfall_path[0], site, output_path_staging) # ouput csv with new storms
+
